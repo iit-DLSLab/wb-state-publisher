@@ -101,10 +101,6 @@ bool WholeBodyStatePublisherController::init(hardware_interface::JointStateInter
         // if we are using the ordered robot model, then we have to remove
         // the prefix from the string (e.g., 01_lf_haa_joint -> lf_haa_joint)
 
-
-
-        ROS_ERROR_STREAM("joint_name: " << joint_name);
-        ROS_ERROR_STREAM( "joint_name substr: " << joint_name.substr(3) );
         if(!joint_name.empty() && joint_name[0] == '0'){
             joint_states_[joint_id] = hw->getHandle(joint_name.substr(3));
         } else {
