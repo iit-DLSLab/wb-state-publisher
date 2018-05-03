@@ -38,8 +38,8 @@ bool WholeBodyStatePublisherController::init(hardware_interface::JointStateInter
 	// Reading the robot model path in the ROS parameter server
 	std::string model_path;
 	if (!controller_nh.getParam("robot_model", model_path)) {
-		ROS_WARN("Setting the default model path as %s/robot_model", robot_node.getNamespace().c_str());
-		model_path = robot_node.getNamespace() + "/robot_model";
+        ROS_WARN("Setting the default model path as %s/robot_model", robot_node.getNamespace().c_str());
+        model_path = robot_node.getNamespace() + "/robot_model";
 	}
 
 	// Reading the urdf model
@@ -97,7 +97,19 @@ bool WholeBodyStatePublisherController::init(hardware_interface::JointStateInter
 		unsigned int joint_id = joint_it->second;
 
 		// Getting the joint handle
-		joint_states_[joint_id] = hw->getHandle(joint_name);
+
+        // if we are using the ordered robot model, then we have to remove
+        // the prefix from the string (e.g., 01_lf_haa_joint -> lf_haa_joint)
+
+
+
+        ROS_ERROR_STREAM("joint_name: " << joint_name);
+        ROS_ERROR_STREAM( "joint_name substr: " << joint_name.substr(3) );
+        if(!joint_name.empty() && joint_name[0] == '0'){
+            joint_states_[joint_id] = hw->getHandle(joint_name.substr(3));
+        } else {
+            joint_states_[joint_id] = hw->getHandle(joint_name);
+        }
 	}
 
 	// Initializing the real-time whole-body state publisher
