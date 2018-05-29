@@ -102,6 +102,8 @@ class WholeBodyStatePublisherController :
 
 		/** @brief Joint handles */
 		std::vector<hardware_interface::JointStateHandle> joint_states_;
+		
+		bool ok_to_publish = false;
 };
 
 } //@namespace wb_state_publisher
