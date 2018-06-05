@@ -1,5 +1,7 @@
 #include <wb_state_publisher/WholeBodyStatePublisherController.h>
 #include <pluginlib/class_list_macros.h>
+#include <dwl/utils/RigidBodyDynamics.h>
+#include <cmath>
 
 
 PLUGINLIB_EXPORT_CLASS(wb_state_publisher::WholeBodyStatePublisherController,
@@ -120,6 +122,8 @@ void WholeBodyStatePublisherController::starting(const ros::Time& time)
 	// Initializing the current time
 	robot_state_.time = time.toSec();
 
+    ok_to_publish = true;
+
 	// Initializing the current base state
     for (unsigned int base_idx = 0; base_idx < num_meas_base_joints_; base_idx++) {
     	unsigned int base_coord = fbs_.getFloatingBaseJointCoordinate(base_idx);
@@ -140,8 +144,19 @@ void WholeBodyStatePublisherController::starting(const ros::Time& time)
 		robot_state_.joint_eff(joint_idx) = joint_states_[joint_idx].getEffort();
 	}
 
-	// Computing the initial contact information
-	computeContactState();
+    //sanity check
+    if ((!robot_state_.joint_pos.allFinite()) ||
+        (!robot_state_.joint_vel.allFinite()) ||
+        (!robot_state_.joint_acc.allFinite())  ||
+        (!robot_state_.joint_eff.allFinite()) )
+    {
+        std::cout<<" you have NaNs/infs in you wholebody state" <<std::endl;
+        ok_to_publish = false;
+    } else {
+        // Computing the initial contact information
+        computeContactState();
+    }
+
 }
 
 
@@ -150,6 +165,8 @@ void WholeBodyStatePublisherController::update(const ros::Time& time,
 {
 	// Updating the current time
 	robot_state_.time = time.toSec();
+
+    ok_to_publish = true;
 
 	// Updating the current base state
     for (unsigned int base_idx = 0; base_idx < num_meas_base_joints_; base_idx++) {
@@ -173,11 +190,26 @@ void WholeBodyStatePublisherController::update(const ros::Time& time,
 		robot_state_.joint_eff(joint_idx) = joint_states_[joint_idx].getEffort();
 	}
 
-	// Computing the contact information
-	computeContactState();
+    //sanity check
+    if ((!robot_state_.joint_pos.allFinite()) ||
+        (!robot_state_.joint_vel.allFinite()) ||
+        (!robot_state_.joint_acc.allFinite())  ||
+        (!robot_state_.joint_eff.allFinite()) )
+    {
+        std::cout<<" you have NaNs/infs in your wholebody state" <<std::endl;
+        ok_to_publish = false;
+    } else {
+        // Computing the initial contact information
+        computeContactState();
+    }
 
-	// Initializing the real-time whole-body state publisher
-	controller_commons_.publishWholeBodyState(time, robot_state_);
+    //publish only if everything is ok
+    if (ok_to_publish)
+    {
+        // Initializing the real-time whole-body state publisher
+        controller_commons_.publishWholeBodyState(time, robot_state_);
+    }
+
 }
 
 
@@ -213,6 +245,22 @@ void WholeBodyStatePublisherController::computeContactState()
 								robot_state_.base_vel, robot_state_.joint_vel,
 								robot_state_.base_acc, robot_state_.joint_acc,
 								robot_state_.joint_eff, end_effector_names_);
+    //sanity check
+    for (dwl::rbd::BodySelector::const_iterator body_iter = end_effector_names_.begin();
+            body_iter != end_effector_names_.end();
+            body_iter++)
+    {
+        std::string body_name = *body_iter;
+        if ((!robot_state_.contact_pos.find(body_name)->second.allFinite())||
+            (!robot_state_.contact_vel.find(body_name)->second.allFinite())||
+            (!robot_state_.contact_acc.find(body_name)->second.allFinite())||
+            (!robot_state_.contact_eff.find(body_name)->second.allFinite()))
+        {
+             std::cout<<" you have NaNs/infs in your contact state" <<std::endl;
+             ok_to_publish = false;
+        }
+    }
+
 }
 
 } //@namespace wb_state_publisher
