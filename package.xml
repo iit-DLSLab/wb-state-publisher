@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>wb_state_publisher</name>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <description>The whole-body state publisher</description>
 
   <author email="carlos.mastalli@laas.fr">Carlos Mastalli</author>
